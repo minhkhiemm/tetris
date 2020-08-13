@@ -8,17 +8,24 @@ use sdl2::rect::Rect;
 use sdl2::render::{Canvas, Texture, TextureCreator};
 use sdl2::video::{Window, WindowContext};
 
-use sdl2::hint::set_video_minimize_on_focus_lost;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 
 const TETRIS_HEIGHT: usize = 40;
-const HIGH_SCORE_FILE: &'static str = "scores.txt";
+const HIGHSCORE_FILE: &'static str = "scores.txt";
 const LEVEL_TIMES: [u32; 10] = [1000, 850, 700, 600, 500, 400, 300, 250, 221, 190];
 const LEVEL_LINES: [u32; 10] = [20, 40, 60, 80, 100, 120, 140, 160, 180, 200];
-const NB_HIGH_SCORES: usize = 5;
+const NB_HIGHSCORES: usize = 5;
+
+#[derive(Clone, Copy)]
+enum TextureColor {
+    Green,
+    Blue,
+    Red,
+    Black,
+}
 
 type Piece = Vec<Vec<u8>>;
 type States = Vec<Piece>;
@@ -173,9 +180,9 @@ impl TetriminoGenerator for TetriminoS {
     }
 }
 
-struct TetrimimoZ;
+struct TetriminoZ;
 
-impl TetriminoGenerator for TetrimimoZ {
+impl TetriminoGenerator for TetriminoZ {
     fn new() -> Tetrimino {
         Tetrimino {
             states: vec![
@@ -244,6 +251,33 @@ struct Tetrimino {
     current_state: u8,
 }
 
+fn create_texture_rect<'a>(
+    canvas: &mut Canvas<Window>,
+    texture_creator: &'a TextureCreator<WindowContext>,
+    color: TextureColor,
+    size: u32,
+) -> Option<Texture<'a>> {
+    // We'll want to handle failures outside of this function.
+    if let Ok(mut square_texture) = texture_creator.create_texture_target(None, size, size) {
+        canvas
+            .with_texture_canvas(&mut square_texture, |texture| {
+                match color {
+                    // For now, TextureColor only handles two colors.
+                    TextureColor::Green => texture.set_draw_color(Color::RGB(0, 255, 0)),
+                    TextureColor::Blue => texture.set_draw_color(Color::RGB(0, 0, 255)),
+                    TextureColor::Red => texture.set_draw_color(Color::RGB(255, 0, 0)),
+                    TextureColor::Black => texture.set_draw_color(Color::RGB(0, 0, 0)),
+                }
+                texture.clear();
+            })
+            .expect("Failed to color a texture");
+        Some(square_texture)
+    } else {
+        // An error occured so we return nothing and let the function caller handle the error.
+        None
+    }
+}
+
 impl Tetrimino {
     fn rotate(&mut self, game_map: &[Vec<u8>]) {
         let mut tmp_state = self.current_state + 1;
@@ -283,7 +317,7 @@ impl Tetrimino {
 
     fn change_position(&mut self, game_map: &[Vec<u8>], new_x: isize, new_y: usize) -> bool {
         if self.test_position(game_map, self.current_state as usize, new_x, new_y) == true {
-            self.x = new_x;
+            self.x = new_x as isize;
             self.y = new_y;
             true
         } else {
@@ -304,10 +338,10 @@ impl Tetris {
     fn new() -> Tetris {
         let mut game_map = Vec::new();
         for _ in 0..16 {
-            game_map.push(vec![0, 0, 0, 0, 0, 0, 0, 0, 0]);
+            game_map.push(vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         }
         Tetris {
-            game_map,
+            game_map: game_map,
             current_level: 1,
             score: 0,
             nb_lines: 0,
@@ -351,6 +385,7 @@ impl Tetris {
             y += 1;
         }
         if self.game_map.len() == 0 {
+            // A "tetris"!
             score_add += 1000;
         }
         self.update_score(score_add);
@@ -359,6 +394,7 @@ impl Tetris {
             self.game_map.insert(0, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         }
     }
+
     fn create_new_tetrimino(&self) -> Tetrimino {
         static mut PREV: u8 = 7;
         let mut rand_nb = rand::random::<u8>() % 7;
@@ -374,7 +410,7 @@ impl Tetris {
             2 => TetriminoL::new(),
             3 => TetriminoO::new(),
             4 => TetriminoS::new(),
-            5 => TetrimimoZ::new(),
+            5 => TetriminoZ::new(),
             6 => TetriminoT::new(),
             _ => unreachable!(),
         }
@@ -389,6 +425,7 @@ impl Tetris {
                 && piece.y + shift_y < self.game_map.len()
             {
                 let mut shift_x = 0;
+
                 while shift_x < piece.states[piece.current_state as usize][shift_y].len()
                     && (piece.x + shift_x as isize)
                         < self.game_map[piece.y + shift_y].len() as isize
@@ -498,17 +535,17 @@ fn read_from_file(file_name: &str) -> io::Result<String> {
 fn slice_to_string(slice: &[u32]) -> String {
     slice
         .iter()
-        .map(|high_score| high_score.to_string())
+        .map(|highscore| highscore.to_string())
         .collect::<Vec<String>>()
         .join(" ")
 }
 
-fn save_high_scores_and_lines(high_scores: &[u32], number_of_lines: &[u32]) -> bool {
-    let s_high_scores = slice_to_string(high_scores);
+fn save_highscores_and_lines(highscores: &[u32], number_of_lines: &[u32]) -> bool {
+    let s_highscores = slice_to_string(highscores);
     let s_number_of_lines = slice_to_string(number_of_lines);
     write_into_file(
-        &format!("{}\n{}\n", s_high_scores, s_number_of_lines),
-        HIGH_SCORE_FILE,
+        &format!("{}\n{}\n", s_highscores, s_number_of_lines),
+        HIGHSCORE_FILE,
     )
     .is_ok()
 }
@@ -519,15 +556,15 @@ fn line_to_slice(line: &str) -> Vec<u32> {
         .collect()
 }
 
-fn load_high_scores_and_lines() -> Option<(Vec<u32>, Vec<u32>)> {
-    if let Ok(content) = read_from_file(HIGH_SCORE_FILE) {
+fn load_highscores_and_lines() -> Option<(Vec<u32>, Vec<u32>)> {
+    if let Ok(content) = read_from_file(HIGHSCORE_FILE) {
         let mut lines = content
             .splitn(2, "\n")
             .map(|line| line_to_slice(line))
             .collect::<Vec<_>>();
         if lines.len() == 2 {
-            let (lines_sent, high_scores) = (lines.pop().unwrap(), lines.pop().unwrap());
-            Some((high_scores, lines_sent))
+            let (lines_sent, highscores) = (lines.pop().unwrap(), lines.pop().unwrap());
+            Some((highscores, lines_sent))
         } else {
             None
         }
@@ -537,7 +574,7 @@ fn load_high_scores_and_lines() -> Option<(Vec<u32>, Vec<u32>)> {
 }
 
 fn update_vec(v: &mut Vec<u32>, value: u32) -> bool {
-    if v.len() < NB_HIGH_SCORES {
+    if v.len() < NB_HIGHSCORES {
         v.push(value);
         true
     } else {
@@ -550,24 +587,25 @@ fn update_vec(v: &mut Vec<u32>, value: u32) -> bool {
         false
     }
 }
+
 fn print_game_information(tetris: &Tetris) {
-    let mut new_highest_high_score = true;
+    let mut new_highest_highscore = true;
     let mut new_highest_lines_sent = true;
-    if let Some((mut high_scores, mut lines_sent)) = load_high_scores_and_lines() {
-        new_highest_high_score = update_vec(&mut high_scores, tetris.score);
-        new_highest_lines_sent = update_vec(&mut lines_sent, tetris.score);
-        if new_highest_high_score || new_highest_lines_sent {
-            save_high_scores_and_lines(&high_scores, &lines_sent);
+    if let Some((mut highscores, mut lines_sent)) = load_highscores_and_lines() {
+        new_highest_highscore = update_vec(&mut highscores, tetris.score);
+        new_highest_lines_sent = update_vec(&mut lines_sent, tetris.nb_lines);
+        if new_highest_highscore || new_highest_lines_sent {
+            save_highscores_and_lines(&highscores, &lines_sent);
         }
     } else {
-        save_high_scores_and_lines(&[tetris.score], &[tetris.nb_lines]);
+        save_highscores_and_lines(&[tetris.score], &[tetris.nb_lines]);
     }
-    println!("Game over..");
+    println!("Game over...");
     println!(
-        "Score:      {}{}",
+        "Score:           {}{}",
         tetris.score,
-        if new_highest_high_score {
-            "[NEW HIGH SCORE]"
+        if new_highest_highscore {
+            " [NEW HIGHSCORE]"
         } else {
             ""
         }
@@ -576,12 +614,12 @@ fn print_game_information(tetris: &Tetris) {
         "Number of lines: {}{}",
         tetris.nb_lines,
         if new_highest_lines_sent {
-            "[NEW HIGH SCORE]"
+            " [NEW HIGHSCORE]"
         } else {
             ""
         }
     );
-    println!("Current level: {}", tetris.current_level);
+    println!("Current level:   {}", tetris.current_level);
 }
 
 fn is_time_over(tetris: &Tetris, timer: &SystemTime) -> bool {
@@ -593,23 +631,72 @@ fn is_time_over(tetris: &Tetris, timer: &SystemTime) -> bool {
         Err(_) => false,
     }
 }
+//
+fn create_texture_from_text<'a>(
+    texture_creator: &'a TextureCreator<WindowContext>,
+    font: &sdl2::ttf::Font,
+    text: &str,
+    r: u8,
+    g: u8,
+    b: u8,
+) -> Option<Texture<'a>> {
+    if let Ok(surface) = font.render(text).blended(Color::RGB(r, g, b)) {
+        texture_creator.create_texture_from_surface(&surface).ok()
+    } else {
+        None
+    }
+}
+
+fn get_rect_from_text(text: &str, x: i32, y: i32) -> Option<Rect> {
+    Some(Rect::new(x, y, text.len() as u32 * 20, 30))
+}
+fn display_game_information<'a>(
+    tetris: &Tetris,
+    canvas: &mut Canvas<Window>,
+    texture_creator: &'a TextureCreator<WindowContext>,
+    font: &sdl2::ttf::Font,
+    start_x_point: i32,
+) {
+    let score_text = format!("Score: {}", tetris.score);
+    let lines_sent_text = format!("Lines sent: {}", tetris.nb_lines);
+    let level_text = format!("Level: {}", tetris.current_level);
+
+    let score = create_texture_from_text(&texture_creator, &font, &score_text, 255, 255, 255)
+        .expect("Cannot render text");
+    let lines_sent =
+        create_texture_from_text(&texture_creator, &font, &lines_sent_text, 255, 255, 255)
+            .expect("Cannot render text");
+    let level = create_texture_from_text(&texture_creator, &font, &level_text, 255, 255, 255)
+        .expect("Cannot render text");
+
+    canvas
+        .copy(&score, None, get_rect_from_text(&score_text, 275, 75))
+        .expect("Couldn't copy text");
+    canvas
+        .copy(&lines_sent, None, get_rect_from_text(&score_text, 275, 125))
+        .expect("Couldn't copy text");
+    canvas
+        .copy(&level, None, get_rect_from_text(&score_text, 275, 160))
+        .expect("Couldn't copy text");
+}
+//
 
 fn main() {
     let sdl_context = sdl2::init().expect("SDL initialization failed");
-    let video_subsystem = sdl_context
-        .video()
-        .expect("Couldn't get SDL video subsystem");
+    let video_subsystem = sdl_context.video().expect(
+        "Couldn't get 
+          SDL video subsystem",
+    );
     let width = 600;
     let height = 800;
-    let mut tetris = Tetris::new();
     let mut timer = SystemTime::now();
-
     let mut event_pump = sdl_context
         .event_pump()
         .expect("Failed to get SDL event pump");
 
-    let grid_x = (width - TETRIS_HEIGHT as u32 * 10) as i32 / 2;
+    let grid_x = 20;
     let grid_y = (height - TETRIS_HEIGHT as u32 * 16) as i32 / 2;
+    let mut tetris = Tetris::new();
 
     let window = video_subsystem
         .window("Tetris", width, height)
@@ -625,25 +712,20 @@ fn main() {
         .expect("Couldn't get window's canvas");
 
     let texture_creator: TextureCreator<_> = canvas.texture_creator();
+
     let grid = create_texture_rect(
         &mut canvas,
         &texture_creator,
-        0,
-        0,
-        0,
-        TETRIS_HEIGHT as u32 + 10,
-        TETRIS_HEIGHT as u32 * 16,
+        TextureColor::Black,
+        TETRIS_HEIGHT as u32 * 10,
     )
     .expect("Failed to create a texture");
 
     let border = create_texture_rect(
         &mut canvas,
         &texture_creator,
-        255,
-        255,
-        255,
+        TextureColor::Blue,
         TETRIS_HEIGHT as u32 * 10 + 20,
-        TETRIS_HEIGHT as u32 * 16 + 20,
     )
     .expect("Failed to create a texture");
 
@@ -652,15 +734,13 @@ fn main() {
             create_texture_rect(
                 &mut canvas,
                 &texture_creator,
-                $r,
-                $g,
-                $b,
-                TETRIS_HEIGHT as u32,
+                TextureColor::Green,
                 TETRIS_HEIGHT as u32,
             )
             .unwrap()
         };
     }
+
     let textures = [
         texture!(255, 69, 69),
         texture!(255, 220, 69),
@@ -693,8 +773,8 @@ fn main() {
                 &border,
                 None,
                 Rect::new(
-                    (width - TETRIS_HEIGHT as u32 * 10) as i32 / 2 - 10,
-                    (height - TETRIS_HEIGHT as u32 * 16) as i32 / 2 * 10,
+                    10,
+                    (height - TETRIS_HEIGHT as u32 * 16) as i32 / 2 - 10,
                     TETRIS_HEIGHT as u32 * 10 + 20,
                     TETRIS_HEIGHT as u32 * 16 + 20,
                 ),
@@ -705,13 +785,13 @@ fn main() {
                 &grid,
                 None,
                 Rect::new(
-                    (width - TETRIS_HEIGHT as u32 * 10) as i32 / 2,
+                    20,
                     (height - TETRIS_HEIGHT as u32 * 16) as i32 / 2,
                     TETRIS_HEIGHT as u32 * 10,
                     TETRIS_HEIGHT as u32 * 16,
                 ),
             )
-            .expect("Couldn't copy texture into new window");
+            .expect("Couldn't copy texture into window");
 
         if tetris.current_piece.is_none() {
             let current_piece = tetris.create_new_tetrimino();
@@ -740,7 +820,7 @@ fn main() {
                                     grid_x
                                         + (piece.x + case_nb as isize) as i32
                                             * TETRIS_HEIGHT as i32,
-                                    grid_y + (piece.y + line_nb) as i32 + TETRIS_HEIGHT as i32,
+                                    grid_y + (piece.y + line_nb) as i32 * TETRIS_HEIGHT as i32,
                                     TETRIS_HEIGHT as u32,
                                     TETRIS_HEIGHT as u32,
                                 ),
@@ -754,6 +834,34 @@ fn main() {
             print_game_information(&tetris);
             break;
         }
+        //
+        let ttf_context = sdl2::ttf::init().expect(
+            "SDL TTF initialization
+        failed",
+        );
+        let mut font = ttf_context
+            .load_font("assets/lucon.ttf", 128)
+            .expect("Couldn't load the font");
+        font.set_style(sdl2::ttf::STYLE_BOLD);
+
+        let rendered_text = create_texture_from_text(&texture_creator, &font, "test", 0, 0, 0)
+            .expect("Cannot render text");
+        canvas
+            .copy(
+                &rendered_text,
+                None,
+                Some(Rect::new(width as i32 - 40, 0, 40, 30)),
+            )
+            .expect("Couldn't copy text");
+        display_game_information(
+            &tetris,
+            &mut canvas,
+            &texture_creator,
+            &font,
+            width as i32 - grid_x - 10,
+        );
+        //
+
         for (line_nb, line) in tetris.game_map.iter().enumerate() {
             for (case_nb, case) in line.iter().enumerate() {
                 if *case == 0 {
@@ -774,28 +882,7 @@ fn main() {
             }
         }
         canvas.present();
-        sleep(Duration::new(0, 1_000_000_000u32 / 60));
-    }
-}
 
-fn create_texture_rect<'a>(
-    canvas: &mut Canvas<Window>,
-    texture_creator: &'a TextureCreator<WindowContext>,
-    color_r: u8,
-    color_g: u8,
-    color_b: u8,
-    width: u32,
-    height: u32,
-) -> Option<Texture<'a>> {
-    if let Ok(mut square_texture) = texture_creator.create_texture_target(None, width, height) {
-        canvas
-            .with_texture_canvas(&mut square_texture, |texture| {
-                texture.set_draw_color(Color::RGB(color_r, color_g, color_b));
-                texture.clear();
-            })
-            .expect("Failed to color a texture");
-        Some(square_texture)
-    } else {
-        None
+        sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
 }
