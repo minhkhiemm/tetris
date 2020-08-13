@@ -9,8 +9,10 @@ use sdl2::rect::Rect;
 use sdl2::render::{Canvas, Texture, TextureCreator};
 use sdl2::video::{Window, WindowContext};
 
+use sdl2::mouse::SystemCursor::No;
 use std::fs::File;
 use std::io::{self, Read, Write};
+use std::option::Option::Some;
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 
@@ -133,27 +135,6 @@ pub fn main() {
 //         None
 //     }
 // }
-
-fn create_new_tetrimino() -> Tetrimino {
-    static mut PREV: u8 = 7;
-    let mut rand_nb = rand::random::<u8>() % 7;
-    if unsafe { PREV } == rand_nb {
-        rand_nb = rand::random::<u8>() % 7;
-    }
-    unsafe {
-        PREV = rand_nb;
-    }
-    match rand_nb {
-        0 => TertriminoI::new(),
-        1 => TetriminoJ::new(),
-        2 => TetriminoL::new(),
-        3 => TetriminoO::new(),
-        4 => TetriminoS::new(),
-        5 => TetriminoZ::new(),
-        6 => TetriminoT::new(),
-        _ => unreachable!(),
-    }
-}
 
 fn slice_to_string(slice: &[u32]) -> String {
     slice
@@ -433,6 +414,96 @@ impl TertriminoGenerator for TertriminoT {
     }
 }
 
+struct Tetris {
+    game_map: Vec<Vec<u8>>,
+    current_level: u32,
+    score: u32,
+    nb_lines: u32,
+    current_piece: Option<Tetrimino>,
+}
+
+impl Tetris {
+    fn new() -> Tetris {
+        let mut game_map = Vec::new();
+        for _ in 0..16 {
+            game_map.push(vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        }
+        Tetris {
+            game_map,
+            current_level: 1,
+            score: 0,
+            nb_lines: 0,
+            current_piece: None,
+        }
+    }
+
+    fn create_new_tetrimino(&self) -> Tetrimino {
+        static mut PREV: u8 = 7;
+        let mut rand_nb = rand::random::<u8>() % 7;
+        if unsafe { PREV } == rand_nb {
+            rand_nb = rand::random::<u8>() % 7;
+        }
+        unsafe {
+            PREV = rand_nb;
+        }
+        match rand_nb {
+            0 => TertriminoI::new(),
+            1 => TetriminoJ::new(),
+            2 => TetriminoL::new(),
+            3 => TetriminoO::new(),
+            4 => TetriminoS::new(),
+            5 => TetriminoZ::new(),
+            6 => TetriminoT::new(),
+            _ => unreachable!(),
+        }
+    }
+
+    fn check_lines(&mut self) {
+        let mut y = 0;
+
+        while y < self.game_map.len() {
+            for x in &self.game_map[y] {
+                if *x == 0 {
+                    complete = false;
+                    break;
+                }
+            }
+            if complete == true {
+                self.game_map.remove(y);
+                y -= 1;
+            }
+            y += 1
+        }
+        while self.game_map.len() < 16 {
+            self.game_map.insert(0, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        }
+    }
+
+    fn make_permanent(&mut self) {
+        if let Some(ref mut piece) = self.current_piece {
+            let mut shift_y = 0;
+
+            while shift_y < piece.states[piece.current_state as usize].len() {
+                let mut shift_x = 0;
+                while shift_x < piece.states[piece.current_states as usize][shift_y].len()
+                    && (piece.x + shift_x as isize)
+                        < self.game_map[piece.y + shift_y].len() as isize
+                {
+                    if piece.states[piece.current_state as usize][shift_y][shift_x] != 0 {
+                        let x = piece.x + shift_x as isize;
+                        self.game_map[piece.y + shift_y][x as usize] =
+                            piece.states[piece.current_state as usize][shift_y][shift_x];
+                    }
+                    shift_x += 1;
+                }
+                shift_y += 1;
+            }
+        }
+        self.check_lines();
+        self.current_piece = None;
+    }
+}
+
 impl Tetrimino {
     fn rotate(&mut self, game_map: &[Vec<u8>]) {
         let mut tmp_state = self.current_state + 1;
@@ -480,26 +551,81 @@ impl Tetrimino {
     }
 }
 
-struct Tetris {
-    game_map: Vec<Vec<u8>>,
-    current_level: u32,
-    score: u32,
-    nb_lines: u32,
-    current_piece: Option<Tetrimino>,
-}
+fn handle_events(
+    tetris: &mut Tetris,
+    quit: &mut bool,
+    timer: &mut SystemTime,
+    event_pump: &mut sdl2::EventPump,
+) -> bool {
+    let mut make_permanent = false;
+    if let Some(ref mut piece) = tetris.current_piece {
+        let mut tmp_x = piece.x;
+        let mut tmp_y = piece.y;
 
-impl Tetris {
-    fn new() -> Tetris {
-        let mut game_map = Vec::new();
-        for _ in 0..16 {
-            game_map.push(vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => {
+                    *quit = true;
+                    break;
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Down),
+                    ..
+                } => {
+                    *timer = SystemTime::now();
+                    tmp_y += 1;
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Right),
+                    ..
+                } => {
+                    tmp_x += 1;
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Left),
+                    ..
+                } => {
+                    tmp_x -= 1;
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Up),
+                    ..
+                } => {
+                    piece.rotate(&tetris.game_map);
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Space),
+                    ..
+                } => {
+                    let x = piece.x;
+                    let mut y = piece.y;
+                    while piece.change_position(&tetris.game_map, x, y + 1) == true {
+                        y += 1;
+                    }
+                    make_permanent = true;
+                }
+                _ => {}
+            }
         }
-        Tetris {
-            game_map,
-            current_level: 1,
-            score: 0,
-            nb_lines: 0,
-            current_piece: None,
+        if !make_permanent {
+            if piece.change_position(&tetris.game_map, tmp_x, tmp_y) == false && tmp_y != piece.y {
+                make_permanent = true;
+            }
         }
     }
+    if make_permanent {
+        tetris.make_permanent();
+        *timer = SystemTime::now();
+    }
+    make_permanent
+}
+
+fn print_game_information(tetris: &Tetris) {
+    println!("Game over..");
+    println!("Score:     {}", tetris.score);
+    println!("Current level:  {}", tetris.current_level);
 }
