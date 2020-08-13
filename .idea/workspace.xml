@@ -14,9 +14,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="beb67aa1-a1c5-429a-a2b5-6f6b0684945d" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/tetris.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tetris.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/DDEE9260-BBC7-4192-9527-78C5C80D5311_1_105_c.jpeg" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/scores.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -74,9 +74,20 @@
     </option>
   </component>
   <component name="RunManager">
+    <configuration default="true" type="ArquillianJUnit" factoryName="" nameIsGenerated="true">
+      <option name="arquillianRunConfiguration">
+        <value>
+          <option name="containerStateName" value="" />
+        </value>
+      </option>
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="run" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="channel" value="DEFAULT" />
-      <option name="command" value="run" />
+      <option name="command" value="run --release" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
       <option name="backtrace" value="SHORT" />
@@ -134,26 +145,30 @@
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
   </component>
   <component name="WindowStateProjectService">
-    <state width="972" height="346" key="GridCell.Tab.0.bottom" timestamp="1597147827704">
+    <state width="1996" height="346" key="GridCell.Tab.0.bottom" timestamp="1597336599905">
       <screen x="0" y="0" width="2048" height="1280" />
     </state>
-    <state width="972" height="346" key="GridCell.Tab.0.bottom/0.0.2048.1280@0.0.2048.1280" timestamp="1597147827704" />
-    <state width="972" height="346" key="GridCell.Tab.0.center" timestamp="1597147827704">
+    <state width="1996" height="346" key="GridCell.Tab.0.bottom/0.0.2048.1280@0.0.2048.1280" timestamp="1597336599905" />
+    <state width="1996" height="346" key="GridCell.Tab.0.center" timestamp="1597336599905">
       <screen x="0" y="0" width="2048" height="1280" />
     </state>
-    <state width="972" height="346" key="GridCell.Tab.0.center/0.0.2048.1280@0.0.2048.1280" timestamp="1597147827704" />
-    <state width="972" height="346" key="GridCell.Tab.0.left" timestamp="1597147827703">
+    <state width="1996" height="346" key="GridCell.Tab.0.center/0.0.2048.1280@0.0.2048.1280" timestamp="1597336599905" />
+    <state width="1996" height="346" key="GridCell.Tab.0.left" timestamp="1597336599904">
       <screen x="0" y="0" width="2048" height="1280" />
     </state>
-    <state width="972" height="346" key="GridCell.Tab.0.left/0.0.2048.1280@0.0.2048.1280" timestamp="1597147827703" />
-    <state width="972" height="346" key="GridCell.Tab.0.right" timestamp="1597147827704">
+    <state width="1996" height="346" key="GridCell.Tab.0.left/0.0.2048.1280@0.0.2048.1280" timestamp="1597336599904" />
+    <state width="1996" height="346" key="GridCell.Tab.0.right" timestamp="1597336599905">
       <screen x="0" y="0" width="2048" height="1280" />
     </state>
-    <state width="972" height="346" key="GridCell.Tab.0.right/0.0.2048.1280@0.0.2048.1280" timestamp="1597147827704" />
+    <state width="1996" height="346" key="GridCell.Tab.0.right/0.0.2048.1280@0.0.2048.1280" timestamp="1597336599905" />
     <state x="0" y="191" key="SettingsEditor" timestamp="1597077815115">
       <screen x="0" y="0" width="2048" height="1280" />
     </state>
     <state x="0" y="191" key="SettingsEditor/0.0.2048.1280@0.0.2048.1280" timestamp="1597077815115" />
+    <state width="750" height="540" key="javadoc.popup" timestamp="1597336549116">
+      <screen x="0" y="0" width="2048" height="1280" />
+    </state>
+    <state width="750" height="540" key="javadoc.popup/0.0.2048.1280@0.0.2048.1280" timestamp="1597336549116" />
     <state x="705" y="496" width="637" height="315" key="org.intellij.images.editor.actions.BackgroundImageDialog" timestamp="1597077510184">
       <screen x="0" y="0" width="2048" height="1280" />
     </state>
@@ -162,13 +177,13 @@
       <screen x="0" y="0" width="2048" height="1280" />
     </state>
     <state x="74" y="297" width="875" height="663" key="recent.locations.popup/0.0.2048.1280@0.0.2048.1280" timestamp="1597116744719" />
-    <state x="93" y="296" width="838" height="1032" key="run.anything.popup" timestamp="1597118387368">
+    <state x="93" y="296" width="838" height="1032" key="run.anything.popup" timestamp="1597335749784">
       <screen x="0" y="0" width="2048" height="1280" />
     </state>
-    <state x="93" y="296" width="838" height="1032" key="run.anything.popup/0.0.2048.1280@0.0.2048.1280" timestamp="1597118387368" />
-    <state x="605" y="248" width="838" height="1032" key="search.everywhere.popup" timestamp="1597147868003">
+    <state x="93" y="296" width="838" height="1032" key="run.anything.popup/0.0.2048.1280@0.0.2048.1280" timestamp="1597335749784" />
+    <state x="605" y="248" width="838" height="1032" key="search.everywhere.popup" timestamp="1597336576194">
       <screen x="0" y="0" width="2048" height="1280" />
     </state>
-    <state x="605" y="248" width="838" height="1032" key="search.everywhere.popup/0.0.2048.1280@0.0.2048.1280" timestamp="1597147868003" />
+    <state x="605" y="248" width="838" height="1032" key="search.everywhere.popup/0.0.2048.1280@0.0.2048.1280" timestamp="1597336576194" />
   </component>
 </project>
